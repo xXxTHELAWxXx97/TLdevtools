@@ -1,7 +1,5 @@
 # WELCOME!
 
-![1685814325764](image/readme/1685814325764.png)
-
 Welcome to my most ambitious project yet, I know it's not much at the moment but I plan to make it big. It's a general devtools that I wanted to make to help develop your products. Many of the devtool scripts I've found out there just didn't have enough for what I wanted to test so I made this. Its rough around the edges at the moment but changes will be coming. Thank you for supporting me by downloading this and if you have any suggestions for features please let me know! If you are a developer who is fluent in NUI and want to help me make a custom UI and replace ScaleformUI from this project please reach out.
 
 ## COMMANDS
