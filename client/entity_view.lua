@@ -1,3 +1,7 @@
+----------------------------------------------------------------------------------------------------------------------------
+--Credits: QB-Core Admin Menu, some alterations have been made for more options but the majority of the code is from QB-Core
+----------------------------------------------------------------------------------------------------------------------------
+
 local FrozenEntities        = { }
 local EntityViewDistance    = 5
 local EntityViewEnabled     = false
