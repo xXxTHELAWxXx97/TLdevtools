@@ -30,20 +30,38 @@ RegisterCommand('changeloglevel', function(_,args,_)
 end, true)
 
 
-RegisterCommand('removekvp', function()
-    DeleteResourceKvp('TLdevtools_log_level')
-end)
-
-RegisterCommand('triggerevent', function(_,args,_)
+RegisterCommand('triggerevent', function(src,args,rawCommand)
+    print('command run')
     local direction = tonumber(args[1])
     local eventname = args[2]
     local arguments = {}
+    local player = src
+    for i=3, #args do
+        table.insert(arguments, args[i])
+    end
+    if player == 0 then
+        Trigger(player, direction, eventname, arguments)
+    else
+        if IsPlayerAceAllowed(player, config.perms.admin) or IsPlayerAceAllowed(player, config.perms.functions) then
+            Trigger(player, direction, eventname, arguments)
+        else
+            NewLog('error', 'You do not have permission to use this command')
+            TriggerEvent('TLdevtools:ReportToServer', 'error', player, rawCommand)
+        end
+    end
+end, false)
+
+
+function Trigger(player, direction, eventname, arguments)
+    if player == 0 then
+        player = 'Console'
+    else
+        player = GetPlayerName(player)
+        print('isplayer')
+    end
     if type(direction) ~= 'number' then
         NewLog('error', 'Direction argument must be a number')
         return
-    end
-    for i=3, #args do
-        table.insert(arguments, args[i])
     end
     if eventname == nil then
         NewLog('error', 'No event name given')
@@ -54,16 +72,19 @@ RegisterCommand('triggerevent', function(_,args,_)
             if direction == 0 then
                 TriggerEvent(eventname, table.unpack(arguments))
                 NewLog('success', 'Triggered server event ' .. eventname .. ' with arguments ' .. table.concat(arguments, ', '))
+                TriggerEvent('TLdevtools:PrintToServer', 'info', player .. ' triggered server event ' .. eventname .. ' with arguments ' .. table.concat(arguments, ', '))
             elseif direction >= 1 then
                 TriggerClientEvent(eventname, direction, table.unpack(arguments))
-                NewLog('success', 'Triggered client event ' .. eventname .. ' to ' .. direction .. ' with arguments ' .. table.concat(arguments, ', '))
+                NewLog('success', player .. ' triggered client event ' .. eventname .. ' to ' .. direction .. ' with arguments ' .. table.concat(arguments, ', '))
+                TriggerEvent('TLdevtools:PrintToServer', 'info', player .. ' triggered client event ' .. eventname .. ' to ' .. direction .. ' with arguments ' .. table.concat(arguments, ', '))
             elseif direction == -1 then
                 TriggerClientEvent(eventname, -1, table.unpack(arguments))
-                NewLog('success', 'Triggered client event ' .. eventname .. ' to all with arguments ' .. table.concat(arguments, ', '))
+                NewLog('success', player .. ' triggered client event ' .. eventname .. ' to all with arguments ' .. table.concat(arguments, ', '))
+                TriggerEvent('TLdevtools:PrintToServer', 'info', player .. ' triggered client event ' .. eventname .. ' to all with arguments ' .. table.concat(arguments, ', '))
             end
         end
     end
-end, false)
+end
 
 RegisterNetEvent('TLdevtools:playerJoining', function()
     local data = {

@@ -27,3 +27,4 @@ end)
 exports('isFramework', function(frameworkName)
     return framework == frameworkName
 end)
+

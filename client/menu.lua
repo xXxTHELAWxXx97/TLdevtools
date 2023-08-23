@@ -1,6 +1,6 @@
 ---@diagnostic disable: missing-parameter
 local pool = MenuPool.New()
-local isallowed = false
+local perms = {}
 local debugvalue = 0
 lastlog = {}
 local voffset = {}
@@ -82,18 +82,21 @@ function CreateMenu()
     local class = UIMenuItem.New('Class', 'Class')
     local health = UIMenuItem.New('Health', 'Health')
     local fuel = UIMenuItem.New('Fuel', 'Fuel')
+    local eid = UIMenuItem.New('Entity ID', 'Entity ID')
 
     vehicleinfo:AddItem(vname)
     vehicleinfo:AddItem(plate)
     vehicleinfo:AddItem(class)
     vehicleinfo:AddItem(health)
     vehicleinfo:AddItem(fuel)
+    vehicleinfo:AddItem(eid)
 
     vname:RightLabel('N/A')
     plate:RightLabel('N/A')
     class:RightLabel('N/A')
     health:RightLabel('N/A')
     fuel:RightLabel('N/A')
+    eid:RightLabel('N/A')
 
     vehicleinfo.OnItemSelect = function(menu, item, index)
         if item == refreshmenu then
@@ -103,9 +106,80 @@ function CreateMenu()
             class:RightLabel(vehinfo.class.data)
             health:RightLabel(vehinfo.health.data)
             fuel:RightLabel(vehinfo.fuel.data)
+            eid:RightLabel(GetVehiclePedIsIn(PlayerPedId(), false))
             --vname:RightLabel('Changed')
         end
     end
+
+
+    -- ENTITY VIEWER
+    local eviewer = UIMenu.New('Entity Viewer', 'Entity Viewer', 5, 5)
+    mainMenu:AddSubMenu(eviewer, 'Entity Viewer', 'Entity Viewer', nil, true)
+    local eviewerdistance = UIMenuListItem.New('Set View Distance', 
+    {'5', '10', '15', '20', '25', '30', '35', '40', '45', '50'}, 
+    1, 
+    'Set the distance to view entities')
+    eviewer:AddItem(eviewerdistance)
+
+    eviewerdistance.OnListChanged = function(sender, item, index)
+        NewLog('info', 'Entity Viewer Distance Changed to ' .. tostring(index * 5))
+        SetEntityViewDistance(tostring(index * 5))
+    end
+
+    local copyall = UIMenuItem.New('Copy All', 'Copy all entities to clipboard')
+    local freeaim = UIMenuItem.New('Free Aim', 'Toggle Free Aim')
+    local vehview = UIMenuItem.New('Vehicle View','Toggle Vehicle View')
+    local pedview = UIMenuItem.New('Ped View', 'Toggle Ped View')
+    local objectview = UIMenuItem.New('Object View', 'Toggle Object View')
+
+    eviewer:AddItem(copyall)
+    eviewer:AddItem(freeaim)
+    eviewer:AddItem(vehview)
+    eviewer:AddItem(pedview)
+    eviewer:AddItem(objectview)
+
+    eviewer.OnItemSelect = function(menu, item, index)
+        if (item == freeaim) then
+            ToggleEntityFreeView()
+            NewLog('success', 'Free Aim Toggled')
+        elseif (item == copyall) then
+            CopyToClipboard('freeaimEntity')
+            NewLog('success', 'Copied All Entity data to Clipboard')
+        elseif (item == vehview) then
+            ToggleEntityVehicleView()
+            NewLog('success', 'Vehicle View Toggled')
+        elseif (item == pedview) then
+            ToggleEntityPedView()
+            NewLog('success', 'Ped View Toggled')
+        elseif (item == objectview) then
+            ToggleEntityObjectView()
+            NewLog('success', 'Object View Toggled')
+        end
+    end
+
+    -- COPY COORDS
+    local copycoords = UIMenu.New('Copy Coords', 'Copy Coordinates to Clipboard', 5, 5)
+    mainMenu:AddSubMenu(copycoords, 'Copy Coords', 'Copy Coordinates to Clipboard', nil, true)
+    local copyvec3 = UIMenuItem.New('Copy Vector3', 'Copy Vector3 to Clipboard')
+    local copyvec4 = UIMenuItem.New('Copy Vector4', 'Copy Vector4 to Clipboard')
+    local copyheading = UIMenuItem.New('Copy Heading', 'Copy Heading to Clipboard')
+
+    copycoords:AddItem(copyvec3)
+    copycoords:AddItem(copyvec4)
+    copycoords:AddItem(copyheading)
+
+    copycoords.OnItemSelect(function(menu, item, index)
+        if (item == copyvec3) then
+            CopyToClipboard('vector3')
+            NewLog('success', 'Copied Vector3 to Clipboard')
+        elseif (item == copyvec4) then
+            CopyToClipboard('vector4')
+            NewLog('success', 'Copied Vector4 to Clipboard')
+        elseif (item == copyheading) then
+            CopyToClipboard('heading')
+            NewLog('success', 'Copied Heading to Clipboard')
+        end
+    end)
 
     mainMenu:Visible(true)
 end
@@ -113,17 +187,24 @@ end
 
 --ACE PERMISSIONS
 CreateThread(function()
-    TriggerServerEvent('TLdevtools:acecheck', 'TLdevtools.menu')
+    NewLog('info', 'Checking ACE Permissions')
+    TriggerServerEvent('TLdevtools:CheckPerms')
+    --isallowed = IsAceAllowed('TLdevtools.menu')
+    --NewLog('info', 'Menu Permissions: ' .. tostring(isallowed))
 end)
 
-RegisterNetEvent('TLdevtools:acecheckreturn', function(allowed)
-    NewLog('info', 'Menu Permissions: ' .. tostring(allowed))
-    isallowed = allowed
+--local permissions = {}
+RegisterNetEvent('TLdevtools:ReturnPerms', function(permstable)
+    for k, v in pairs(permstable) do
+        perms[v.perm] = v.allowed
+        NewLog('info', 'Permission ' .. v.perm .. ' is ' .. tostring(v.allowed))
+    end
 end)
 
 --MENU KEYBIND
 CreateThread(function()
     while true do
+        local isallowed = perms.admin or perms.menu or false
         Wait(0)
         if config.menu.useaceperms then
             if isallowed then
@@ -189,8 +270,9 @@ CreateThread(function()
     while true do
         Wait(debugvalue)
         local pos = GetEntityCoords(PlayerPedId())
+        local heading = GetEntityHeading(PlayerPedId())
         hudelements.timer.element = 'Game Timer: ' .. GetGameTimer()
-        hudelements.pos.element = 'X: ' .. Round(pos.x) .. ' Y: ' .. Round(pos.y) .. ' Z: ' .. Round(pos.z)
+        hudelements.pos.element = 'X: ' .. Round(pos.x) .. ' Y: ' .. Round(pos.y) .. ' Z: ' .. Round(pos.z) .. ' H: ' .. Round(heading)
         hudelements.serverid.element = 'Server ID: ' .. GetPlayerServerId(PlayerId())
         hudelements.loginfo.element = 'Logging Active'
         hudelements.vehicleoffset.element = 'Vehicle Offset: X:' .. voffset.x .. ' Y:' .. voffset.y .. ' Z:' .. voffset.z
@@ -227,39 +309,7 @@ CreateThread(function()
     end
 end)
 
-function DebugLog(info)
-    if hudelements.loginfo.enabled == true then
-        loginfo = true
-    else
-        loginfo = false
-    end
-    if loginfo == true then
-        if lastlog[info.title] ~= nil and type(lastlog[info.title]) == 'table' then
-            if CompareStrings(lastlog[info.title].data , info.data) then
-                return
-            else
-                NewLog('info', info.data)
-                lastlog[info.title] = info
-            end
-        else
-            NewLog('info', info.data)
-            lastlog[info.title] = info
-        end
-    end
-end
 
-function CompareStrings(str1, str2)
-    if str1 == str2 then
-        return true
-    else
-        return false
-    end
-end
 
-function Round(num, numDecimalPlaces)
-    if numDecimalPlaces == nil then
-        numDecimalPlaces = 2
-    end
-    local mult = 10^(numDecimalPlaces or 0)
-    return math.floor(num * mult + 0.5) / mult
-end
+
+

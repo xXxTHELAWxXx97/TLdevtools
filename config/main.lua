@@ -23,10 +23,15 @@ config.frameworkchecker = {
     nat = 'framework',
 }
 
+config.perms = {
+    admin = 'TLdevtools.admin',
+    menu = 'TLdevtools.menu',
+    functions = 'TLdevtools.functions',
+}
+
 config.menu = {
     keybind = 'F5',
-    useaceperms = false,
-    aceperm = 'tldevtools.menu',
+    useaceperms = true,
 }
 
 config.keys = {
